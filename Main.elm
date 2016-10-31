@@ -1,7 +1,10 @@
 module Main exposing (..)
 
 import Html.App as App
-import Html exposing (Html, div)
+import Html exposing (Html)
+import Element exposing (toHtml)
+import Collage exposing (collage, path, traced, solid)
+import Color exposing (red)
 
 
 type alias Model =
@@ -29,7 +32,16 @@ update msg model =
 
 view : Model -> Html msg
 view model =
-    div [] []
+    let
+        xAxis =
+            path [ ( -400, -250 ), ( 400, -250 ) ] |> traced (solid red)
+    in
+        collage
+            800
+            500
+            [ xAxis
+            ]
+            |> toHtml
 
 
 subscriptions : Model -> Sub msg
