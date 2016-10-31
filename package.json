@@ -1,0 +1,32 @@
+{
+  "dependencies": {
+    "chokidar-cli": "^1.2.0"
+  },
+  "name": "elm-data-viz",
+  "description": "YACL",
+  "version": "0.0.1",
+  "main": "Main.elm",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "watch": "chokidar '**/*.elm' -c 'clear && elm-make Main.elm --warn'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/craigbilner/elm-data-viz.git"
+  },
+  "keywords": [
+    "elm",
+    "charts",
+    "canvas",
+    "data",
+    "visualisation",
+    "visualization"
+  ],
+  "author": "Craig Bilner",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/craigbilner/elm-data-viz/issues"
+  },
+  "homepage": "https://github.com/craigbilner/elm-data-viz#readme"
+}
