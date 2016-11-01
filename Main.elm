@@ -23,7 +23,7 @@ initModel : Model
 initModel =
     { height = 750
     , width = 1000
-    , padding = 10
+    , padding = 100
     , axisColour = black
     }
 
@@ -36,6 +36,25 @@ init =
 update : Msg -> Model -> ( Model, Cmd msg )
 update msg model =
     ( model, Cmd.none )
+
+
+calculateYAxis : Model -> Form
+calculateYAxis { width, height, padding, axisColour } =
+    let
+        originX =
+            ((-width / 2) + padding)
+
+        originY =
+            ((-height / 2) + padding)
+
+        xStart =
+            ( originX, originY )
+
+        xEnd =
+            ( originX, height / 2 - padding )
+    in
+        path [ xStart, xEnd ]
+            |> traced (solid axisColour)
 
 
 calculateXAxis : Model -> Form
@@ -60,6 +79,9 @@ calculateXAxis { width, height, padding, axisColour } =
 view : Model -> Html msg
 view model =
     let
+        yAxis =
+            calculateYAxis model
+
         xAxis =
             calculateXAxis model
     in
@@ -67,6 +89,7 @@ view model =
             (round model.width)
             (round model.height)
             [ xAxis
+            , yAxis
             ]
             |> toHtml
 
