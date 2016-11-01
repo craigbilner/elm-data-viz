@@ -3,12 +3,16 @@ module Main exposing (..)
 import Html.App as App
 import Html exposing (Html)
 import Element exposing (toHtml)
-import Collage exposing (collage, path, traced, solid)
-import Color exposing (red)
+import Collage exposing (collage, Form, path, traced, solid)
+import Color exposing (..)
 
 
 type alias Model =
-    Int
+    { height : Float
+    , width : Float
+    , padding : Float
+    , axisColour : Color.Color
+    }
 
 
 type Msg
@@ -17,7 +21,11 @@ type Msg
 
 initModel : Model
 initModel =
-    1
+    { height = 750
+    , width = 1000
+    , padding = 10
+    , axisColour = black
+    }
 
 
 init : ( Model, Cmd msg )
@@ -30,15 +38,34 @@ update msg model =
     ( model, Cmd.none )
 
 
+calculateXAxis : Model -> Form
+calculateXAxis { width, height, padding, axisColour } =
+    let
+        originX =
+            ((-width / 2) + padding)
+
+        originY =
+            ((-height / 2) + padding)
+
+        xStart =
+            ( originX, originY )
+
+        xEnd =
+            ( width / 2 - padding, originY )
+    in
+        path [ xStart, xEnd ]
+            |> traced (solid axisColour)
+
+
 view : Model -> Html msg
 view model =
     let
         xAxis =
-            path [ ( -400, -250 ), ( 400, -250 ) ] |> traced (solid red)
+            calculateXAxis model
     in
         collage
-            800
-            500
+            (round model.width)
+            (round model.height)
             [ xAxis
             ]
             |> toHtml
