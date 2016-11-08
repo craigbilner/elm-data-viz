@@ -116,16 +116,12 @@ minMax data =
         ( min, max )
 
 
-makeValues : List Float -> List ( Float, Float ) -> List Float
-makeValues units data =
-    let
-        ( min, max ) =
-            minMax data
-
-        spread =
-            (max - min) / (toFloat (List.length units))
-    in
-        List.map (\x -> toFloat (round (x * spread))) units
+makeValues : Float -> Float -> Float -> List Float
+makeValues min max step =
+    if min >= max then
+        []
+    else
+        min :: (makeValues (min + step) max step)
 
 
 makeXValue : Float -> Float -> Float -> Float -> Float -> Form
@@ -142,8 +138,11 @@ xUnits model =
         ticks =
             List.map (\x -> x * model.xTickSpread) units
 
+        ( min, max ) =
+            minMax model.data
+
         values =
-            makeValues units model.data
+            makeValues min max ((max - min) / (toFloat (List.length units)))
 
         xOffset =
             model.width / 2 - model.padding
