@@ -5,6 +5,7 @@ import Html exposing (Html)
 import Element exposing (toHtml)
 import Collage exposing (collage, Form, path, traced, solid)
 import Color exposing (..)
+import Data exposing (..)
 
 
 type alias Model =
@@ -12,6 +13,9 @@ type alias Model =
     , width : Float
     , padding : Float
     , axisColour : Color.Color
+    , xTickHeight : Float
+    , xTickSpread : Float
+    , data : List ( Int, Int )
     }
 
 
@@ -25,6 +29,9 @@ initModel =
     , width = 1000
     , padding = 100
     , axisColour = black
+    , xTickHeight = 10
+    , xTickSpread = 50
+    , data = lineData
     }
 
 
@@ -76,6 +83,32 @@ calculateXAxis { width, height, padding, axisColour } =
             |> traced (solid axisColour)
 
 
+makeXTick : Color -> Float -> Float -> Float -> Float -> Form
+makeXTick colour tickHeight xOffset yOffset xPos =
+    path [ ( xPos - xOffset, -yOffset ), ( xPos - xOffset, -tickHeight - yOffset ) ]
+        |> traced (solid colour)
+
+
+xTicks : Model -> List Form
+xTicks model =
+    let
+        units =
+            (model.width - model.padding * 2) / model.xTickSpread
+
+        ticks =
+            List.map (\x -> x * model.xTickSpread) [0..units]
+
+        xOffset =
+            model.width / 2 - model.padding
+
+        yOffset =
+            model.height / 2 - model.padding
+    in
+        List.map
+            (makeXTick model.axisColour model.xTickHeight xOffset yOffset)
+            ticks
+
+
 view : Model -> Html msg
 view model =
     let
@@ -84,13 +117,17 @@ view model =
 
         xAxis =
             calculateXAxis model
+
+        forms =
+            List.append (xTicks model)
+                [ xAxis
+                , yAxis
+                ]
     in
         collage
             (round model.width)
             (round model.height)
-            [ xAxis
-            , yAxis
-            ]
+            forms
             |> toHtml
 
 
