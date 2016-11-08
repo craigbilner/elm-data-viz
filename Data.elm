@@ -1,7 +1,7 @@
 module Data exposing (..)
 
 
-lineData : List ( Int, Int )
+lineData : List ( Float, Float )
 lineData =
     [ ( 2, 90 )
     , ( 4, 95 )

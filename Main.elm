@@ -4,6 +4,7 @@ import Html.App as App
 import Html exposing (Html)
 import Element exposing (toHtml)
 import Collage exposing (collage, Form, path, traced, solid)
+import Text exposing (..)
 import Color exposing (..)
 import Data exposing (..)
 
@@ -15,7 +16,8 @@ type alias Model =
     , axisColour : Color.Color
     , xTickHeight : Float
     , xTickSpread : Float
-    , data : List ( Int, Int )
+    , xTickValueMargin : Float
+    , data : List ( Float, Float )
     }
 
 
@@ -31,6 +33,7 @@ initModel =
     , axisColour = black
     , xTickHeight = 10
     , xTickSpread = 50
+    , xTickValueMargin = 20
     , data = lineData
     }
 
@@ -89,14 +92,52 @@ makeXTick colour tickHeight xOffset yOffset xPos =
         |> traced (solid colour)
 
 
-xTicks : Model -> List Form
-xTicks model =
+minMax : ( Float, Float ) -> ( Float, Float ) -> ( Float, Float )
+minMax ( currentMin, currentMax ) ( xValue, _ ) =
+    let
+        newMin =
+            if xValue < currentMin then
+                xValue
+            else
+                currentMin
+
+        newMax =
+            if xValue > currentMax then
+                xValue
+            else
+                currentMax
+    in
+        ( newMin, newMax )
+
+
+makeValues : List Float -> List ( Float, Float ) -> List Float
+makeValues units data =
+    let
+        ( min, max ) =
+            List.foldl minMax ( 0, 0 ) data
+
+        spread =
+            (max - min) / (toFloat (List.length units))
+    in
+        List.map (\x -> toFloat (round (x * spread))) units
+
+
+makeXValue : Float -> Float -> Float -> Float -> Float -> Form
+makeXValue xOffset yOffset margin xPos xValue =
+    Collage.move ( xPos - xOffset, -yOffset - margin ) (Collage.text (fromString (toString xValue)))
+
+
+xUnits : Model -> ( List Form, List Form )
+xUnits model =
     let
         units =
-            (model.width - model.padding * 2) / model.xTickSpread
+            [0..((model.width - model.padding * 2) / model.xTickSpread)]
 
         ticks =
-            List.map (\x -> x * model.xTickSpread) [0..units]
+            List.map (\x -> x * model.xTickSpread) units
+
+        values =
+            makeValues units model.data
 
         xOffset =
             model.width / 2 - model.padding
@@ -104,9 +145,11 @@ xTicks model =
         yOffset =
             model.height / 2 - model.padding
     in
-        List.map
+        ( List.map
             (makeXTick model.axisColour model.xTickHeight xOffset yOffset)
             ticks
+        , List.map2 (makeXValue xOffset yOffset model.xTickValueMargin) ticks values
+        )
 
 
 view : Model -> Html msg
@@ -118,10 +161,16 @@ view model =
         xAxis =
             calculateXAxis model
 
+        ( xTicks, xValues ) =
+            xUnits model
+
         forms =
-            List.append (xTicks model)
-                [ xAxis
-                , yAxis
+            List.concat
+                [ xTicks
+                , xValues
+                , [ xAxis
+                  , yAxis
+                  ]
                 ]
     in
         collage
