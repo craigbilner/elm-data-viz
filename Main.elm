@@ -6,7 +6,9 @@ import Element exposing (toHtml)
 import Collage exposing (collage, Form, path, traced, solid)
 import Text exposing (..)
 import Color exposing (..)
+import List.Extra
 import Data exposing (..)
+import Debug
 
 
 type alias Model =
@@ -92,29 +94,33 @@ makeXTick colour tickHeight xOffset yOffset xPos =
         |> traced (solid colour)
 
 
-minMax : ( Float, Float ) -> ( Float, Float ) -> ( Float, Float )
-minMax ( currentMin, currentMax ) ( xValue, _ ) =
+minMax : List ( Float, Float ) -> ( Float, Float )
+minMax data =
     let
-        newMin =
-            if xValue < currentMin then
-                xValue
-            else
-                currentMin
+        min =
+            case List.head data of
+                Just ( a, _ ) ->
+                    a
 
-        newMax =
-            if xValue > currentMax then
-                xValue
-            else
-                currentMax
+                _ ->
+                    0
+
+        max =
+            case List.Extra.last data of
+                Just ( a, _ ) ->
+                    a
+
+                _ ->
+                    0
     in
-        ( newMin, newMax )
+        ( min, max )
 
 
 makeValues : List Float -> List ( Float, Float ) -> List Float
 makeValues units data =
     let
         ( min, max ) =
-            List.foldl minMax ( 0, 0 ) data
+            minMax data
 
         spread =
             (max - min) / (toFloat (List.length units))
