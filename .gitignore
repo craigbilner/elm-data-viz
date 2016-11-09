@@ -5,5 +5,6 @@ repl-temp-*
 # generated files
 *.swp
 *.log
+.idea
 # node
 node_modules
