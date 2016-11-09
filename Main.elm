@@ -27,6 +27,18 @@ type Msg
     = Noop
 
 
+divUp : Float -> Float -> Float
+divUp d n =
+    let
+        result =
+            toFloat << floor <| d / n
+    in
+        if (d / n) > result then
+            result + 1
+        else
+            result
+
+
 initModel : Model
 initModel =
     { height = 750
@@ -119,7 +131,7 @@ minMax data =
 makeValues : Float -> Float -> Float -> List Float
 makeValues min max step =
     if min >= max then
-        []
+        min :: []
     else
         min :: (makeValues (min + step) max step)
 
@@ -141,8 +153,17 @@ xUnits model =
         ( min, max ) =
             minMax model.data
 
+        tickCount =
+            toFloat (List.length units) - 1
+
+        step =
+            divUp (max - min) tickCount
+
+        stepMax =
+            step * tickCount + min
+
         values =
-            makeValues min max ((max - min) / (toFloat (List.length units)))
+            makeValues min stepMax step
 
         xOffset =
             model.width / 2 - model.padding
