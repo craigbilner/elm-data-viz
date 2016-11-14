@@ -1,4 +1,4 @@
-module Main exposing (..)
+port module Main exposing (..)
 
 import Html.App as App
 import Html exposing (Html)
@@ -25,6 +25,7 @@ type alias Model =
 
 type Msg
     = Noop
+    | Zoom ( Int, Int )
 
 
 divUp : Float -> Float -> Float
@@ -59,7 +60,17 @@ init =
 
 update : Msg -> Model -> ( Model, Cmd msg )
 update msg model =
-    ( model, Cmd.none )
+    case msg of
+        Zoom ( x, y ) ->
+            ( updateRange model, Cmd.none )
+
+        _ ->
+            ( model, Cmd.none )
+
+
+updateRange : Model -> Model
+updateRange model =
+    model
 
 
 calculateYAxis : Model -> Form
@@ -206,9 +217,12 @@ view model =
             |> toHtml
 
 
-subscriptions : Model -> Sub msg
+port mouseWheel : (( Int, Int ) -> msg) -> Sub msg
+
+
+subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    mouseWheel Zoom
 
 
 main : Program Never

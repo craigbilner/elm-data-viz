@@ -9,6 +9,13 @@
 </body>
 <script type="text/javascript" src="dist/elm.compiled.js"></script>
 <script>
-    Elm.Main.fullscreen();
+    const app = Elm.Main.fullscreen();
+
+    const scrollListener = (evt) => {
+        evt.preventDefault();
+        app.ports.mouseWheel.send([evt.offsetX, evt.offsetY]);
+    };
+
+    setTimeout(() => document.querySelector('canvas').addEventListener('mousewheel', scrollListener), 0)
 </script>
 </html>
