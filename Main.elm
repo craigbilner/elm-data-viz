@@ -20,12 +20,18 @@ type alias Model =
     , xTickSpread : Float
     , xTickValueMargin : Float
     , data : List ( Float, Float )
+    , range : Maybe ( Float, Float )
     }
 
 
 type Msg
     = Noop
-    | Zoom ( Int, Int )
+    | Zooming ( Bool, Int, Int )
+
+
+type Zoom
+    = In
+    | Out
 
 
 divUp : Float -> Float -> Float
@@ -50,6 +56,7 @@ initModel =
     , xTickSpread = 50
     , xTickValueMargin = 20
     , data = lineData
+    , range = Nothing
     }
 
 
@@ -61,16 +68,37 @@ init =
 update : Msg -> Model -> ( Model, Cmd msg )
 update msg model =
     case msg of
-        Zoom ( x, y ) ->
-            ( updateRange model, Cmd.none )
+        Zooming ( zoomingIn, x, y ) ->
+            let
+                zoom =
+                    if zoomingIn then
+                        In
+                    else
+                        Out
+            in
+                ( updateRange zoom x y model, Cmd.none )
 
         _ ->
             ( model, Cmd.none )
 
 
-updateRange : Model -> Model
-updateRange model =
-    model
+updateRange : Zoom -> Int -> Int -> Model -> Model
+updateRange zoom x y model =
+    let
+        newRange =
+            case model.range of
+                Just ( min, max ) ->
+                    case zoom of
+                        In ->
+                            Just ( min + 1, max - 1 )
+
+                        Out ->
+                            Just ( min - 1, max + 1 )
+
+                Nothing ->
+                    Just <| defaultMinMax model.data
+    in
+        { model | range = newRange }
 
 
 calculateYAxis : Model -> Form
@@ -117,8 +145,8 @@ makeXTick colour tickHeight xOffset yOffset xPos =
         |> traced (solid colour)
 
 
-minMax : List ( Float, Float ) -> ( Float, Float )
-minMax data =
+defaultMinMax : List ( Float, Float ) -> ( Float, Float )
+defaultMinMax data =
     let
         min =
             case List.head data of
@@ -137,6 +165,16 @@ minMax data =
                     0
     in
         ( min, max )
+
+
+minMax : Maybe ( Float, Float ) -> List ( Float, Float ) -> ( Float, Float )
+minMax range data =
+    case range of
+        Just ( min, max ) ->
+            ( min, max )
+
+        _ ->
+            defaultMinMax data
 
 
 makeValues : Float -> Float -> Float -> List Float
@@ -162,7 +200,7 @@ xUnits model =
             List.map (\x -> x * model.xTickSpread) units
 
         ( min, max ) =
-            minMax model.data
+            minMax model.range model.data
 
         tickCount =
             toFloat (List.length units) - 1
@@ -217,12 +255,12 @@ view model =
             |> toHtml
 
 
-port mouseWheel : (( Int, Int ) -> msg) -> Sub msg
+port mouseWheel : (( Bool, Int, Int ) -> msg) -> Sub msg
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    mouseWheel Zoom
+    mouseWheel Zooming
 
 
 main : Program Never
