@@ -2,6 +2,7 @@ port module Main exposing (..)
 
 import Html.App as App
 import Html exposing (Html)
+import Date
 import Element exposing (toHtml)
 import Collage exposing (collage, Form, path, traced, solid)
 import Text exposing (..)
@@ -187,7 +188,19 @@ makeValues min max step =
 
 makeXValue : Float -> Float -> Float -> Float -> Float -> Form
 makeXValue xOffset yOffset margin xPos xValue =
-    Collage.move ( xPos - xOffset, -yOffset - margin ) (Collage.text (fromString (toString xValue)))
+    let
+        position =
+            ( xPos - xOffset, -yOffset - margin )
+
+        text =
+            xValue
+                |> Date.fromTime
+                >> Date.day
+                |> toString
+                |> fromString
+                |> Collage.text
+    in
+        Collage.move position text
 
 
 xUnits : Model -> ( List Form, List Form )
