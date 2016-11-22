@@ -35,16 +35,52 @@ type Zoom
     | Out
 
 
-divUp : Float -> Float -> Float
+type UnitType
+    = Second
+    | Minute
+    | Hour
+    | Day
+    | Month
+    | Year
+
+
+timeDivisions : List ( UnitType, Float )
+timeDivisions =
+    [ ( Second, 1000 )
+    , ( Minute, 60000 )
+    , ( Hour, 3600000 )
+    , ( Day, 86400000 )
+    , ( Month, 2592000000 )
+    , ( Year, 31104000000 )
+    ]
+
+
+findUnitType : Float -> List ( UnitType, Float ) -> ( UnitType, Float )
+findUnitType value unitTypes =
+    case unitTypes of
+        [] ->
+            ( Second, 1000 )
+
+        [ x ] ->
+            x
+
+        x :: y :: xs ->
+            if value < snd y then
+                x
+            else
+                findUnitType value <| y :: xs
+
+
+divUp : Float -> Float -> ( UnitType, Float )
 divUp d n =
     let
-        result =
-            toFloat << floor <| d / n
+        wholeUnit =
+            findUnitType (d / n) timeDivisions
+
+        unitCount =
+            toFloat << ceiling <| d / n / snd wholeUnit
     in
-        if (d / n) > result then
-            result + 1
-        else
-            result
+        ( fst wholeUnit, snd wholeUnit * unitCount )
 
 
 initModel : Model
@@ -91,10 +127,10 @@ updateRange zoom x y model =
                 Just ( min, max ) ->
                     case zoom of
                         In ->
-                            Just ( min + 1, max - 1 )
+                            Just ( min + 2592000000, max - 2592000000 )
 
                         Out ->
-                            Just ( min - 1, max + 1 )
+                            Just ( min - 2592000000, max + 2592000000 )
 
                 Nothing ->
                     Just <| defaultMinMax model.data
@@ -178,16 +214,21 @@ minMax range data =
             defaultMinMax data
 
 
-makeValues : Float -> Float -> Float -> List Float
-makeValues min max step =
-    if min >= max then
+makeValues : Float -> Float -> Float -> Float -> List Float
+makeValues min max step remaining =
+    if min >= max && remaining == 0 then
         min :: []
     else
-        min :: (makeValues (min + step) max step)
+        min :: (makeValues (min + step) max step (remaining - 1))
 
 
-makeXValue : Float -> Float -> Float -> Float -> Float -> Form
-makeXValue xOffset yOffset margin xPos xValue =
+formatDate : UnitType -> Date.Date -> String
+formatDate unitType date =
+    (toString <| Date.month date) ++ " " ++ (toString <| Date.year date - 2000)
+
+
+makeXValue : UnitType -> Float -> Float -> Float -> Float -> Float -> Form
+makeXValue unitType xOffset yOffset margin xPos xValue =
     let
         position =
             ( xPos - xOffset, -yOffset - margin )
@@ -195,8 +236,7 @@ makeXValue xOffset yOffset margin xPos xValue =
         text =
             xValue
                 |> Date.fromTime
-                >> Date.day
-                |> toString
+                >> formatDate unitType
                 |> fromString
                 |> Collage.text
     in
@@ -219,13 +259,10 @@ xUnits model =
             toFloat (List.length units) - 1
 
         step =
-            divUp (max - min) tickCount
-
-        stepMax =
-            step * tickCount + min
+            Debug.log "step" <| divUp (max - min) tickCount
 
         values =
-            makeValues min stepMax step
+            Debug.log "values" <| makeValues min max (snd step) tickCount
 
         xOffset =
             model.width / 2 - model.padding
@@ -236,7 +273,7 @@ xUnits model =
         ( List.map
             (makeXTick model.axisColour model.xTickHeight xOffset yOffset)
             ticks
-        , List.map2 (makeXValue xOffset yOffset model.xTickValueMargin) ticks values
+        , List.map2 (makeXValue (fst step) xOffset yOffset model.xTickValueMargin) ticks values
         )
 
 
