@@ -243,26 +243,37 @@ makeXValue unitType xOffset yOffset margin xPos xValue =
         Collage.move position text
 
 
-xUnits : Model -> ( List Form, List Form )
-xUnits model =
+makeXTicks : Float -> Float -> Model -> List Float -> List Form
+makeXTicks xOffset yOffset model ticks =
+    List.map
+        (makeXTick model.axisColour model.xTickHeight xOffset yOffset)
+        ticks
+
+
+makeXValues : Float -> Float -> Model -> List Float -> List Form
+makeXValues xOffset yOffset model ticks =
     let
-        units =
-            [0..((model.width - model.padding * 2) / model.xTickSpread)]
-
-        ticks =
-            List.map (\x -> x * model.xTickSpread) units
-
         ( min, max ) =
             minMax model.range model.data
 
         tickCount =
-            toFloat (List.length units) - 1
+            toFloat (List.length ticks) - 1
 
         step =
             Debug.log "step" <| divUp (max - min) tickCount
 
         values =
             Debug.log "values" <| makeValues min max (snd step) tickCount
+    in
+        List.map2 (makeXValue (fst step) xOffset yOffset model.xTickValueMargin) ticks values
+
+
+xUnits : Model -> ( List Form, List Form )
+xUnits model =
+    let
+        ticks =
+            [0..((model.width - model.padding * 2) / model.xTickSpread)]
+                |> List.map (\x -> x * model.xTickSpread)
 
         xOffset =
             model.width / 2 - model.padding
@@ -270,10 +281,8 @@ xUnits model =
         yOffset =
             model.height / 2 - model.padding
     in
-        ( List.map
-            (makeXTick model.axisColour model.xTickHeight xOffset yOffset)
-            ticks
-        , List.map2 (makeXValue (fst step) xOffset yOffset model.xTickValueMargin) ticks values
+        ( makeXTicks xOffset yOffset model ticks
+        , makeXValues xOffset yOffset model ticks
         )
 
 
