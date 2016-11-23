@@ -119,18 +119,43 @@ update msg model =
             ( model, Cmd.none )
 
 
+calculateZoomLevel : Float -> Float
+calculateZoomLevel range =
+    if range <= 1000 then
+        0
+    else if range <= 60000 then
+        1000
+    else if range <= 3600000 then
+        60000
+    else if range <= 86400000 then
+        3600000
+    else if range <= 2592000000 then
+        86400000
+    else
+        2592000000
+
+
+calculateZoom : Zoom -> Float -> Float -> Maybe ( Float, Float )
+calculateZoom zoom min max =
+    let
+        zoomLevel =
+            calculateZoomLevel <| max - min
+    in
+        case zoom of
+            In ->
+                Just ( min + zoomLevel, max - zoomLevel )
+
+            Out ->
+                Just ( min - zoomLevel, max + zoomLevel )
+
+
 updateRange : Zoom -> Int -> Int -> Model -> Model
 updateRange zoom x y model =
     let
         newRange =
             case model.range of
                 Just ( min, max ) ->
-                    case zoom of
-                        In ->
-                            Just ( min + 2592000000, max - 2592000000 )
-
-                        Out ->
-                            Just ( min - 2592000000, max + 2592000000 )
+                    calculateZoom zoom min max
 
                 Nothing ->
                     Just <| defaultMinMax model.data
@@ -224,7 +249,24 @@ makeValues min max step remaining =
 
 formatDate : UnitType -> Date.Date -> String
 formatDate unitType date =
-    (toString <| Date.month date) ++ " " ++ (toString <| Date.year date - 2000)
+    case unitType of
+        Second ->
+            toString <| Date.second date
+
+        Minute ->
+            toString <| Date.minute date
+
+        Hour ->
+            toString <| Date.hour date
+
+        Day ->
+            (toString <| Date.day date) ++ " " ++ (toString <| Date.month date)
+
+        Month ->
+            (toString <| Date.month date) ++ " " ++ (toString <| Date.year date - 2000)
+
+        Year ->
+            toString <| Date.year date
 
 
 makeXValue : UnitType -> Float -> Float -> Float -> Float -> Float -> Form
