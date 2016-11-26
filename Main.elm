@@ -124,22 +124,26 @@ calculateZoomLevel range =
     if range <= 1000 then
         0
     else if range <= 60000 then
-        1000
+        125
     else if range <= 3600000 then
-        60000
+        7500
     else if range <= 86400000 then
-        3600000
+        225000
     else if range <= 2592000000 then
-        86400000
+        1375000
+    else if range <= 5184000000 then
+        21600000
+    else if range <= 155520000000 then
+        22000000
     else
-        2592000000
+        31104000000
 
 
 calculateZoom : Zoom -> Float -> Float -> Maybe ( Float, Float )
 calculateZoom zoom min max =
     let
         zoomLevel =
-            calculateZoomLevel <| max - min
+            Debug.log "Zoom" <| calculateZoomLevel (max - min)
     in
         case zoom of
             In ->
