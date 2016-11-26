@@ -13,7 +13,7 @@
 
     const scrollListener = (evt) => {
         evt.preventDefault();
-        app.ports.mouseWheel.send([evt.wheelDelta < 0, evt.offsetX, evt.offsetY]);
+        app.ports.mouseWheel.send([evt.wheelDelta < 0, evt.offsetX, evt.offsetY, Math.abs(evt.wheelDelta)]);
     };
 
     setTimeout(() => document.querySelector('canvas').addEventListener('mousewheel', scrollListener), 0)

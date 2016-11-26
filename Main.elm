@@ -27,7 +27,7 @@ type alias Model =
 
 type Msg
     = Noop
-    | Zooming ( Bool, Int, Int )
+    | Zooming ( Bool, Int, Int, Int )
 
 
 type Zoom
@@ -105,24 +105,30 @@ init =
 update : Msg -> Model -> ( Model, Cmd msg )
 update msg model =
     case msg of
-        Zooming ( zoomingIn, x, y ) ->
+        Zooming ( zoomingIn, x, y, delta ) ->
             let
                 zoom =
                     if zoomingIn then
                         In
                     else
                         Out
+
+                zoomSpeed =
+                    calculateZoomSpeed delta
             in
-                ( updateRange zoom x y model, Cmd.none )
+                ( updateRange zoom zoomSpeed x y model, Cmd.none )
 
         _ ->
             ( model, Cmd.none )
 
 
-calculateZoomLevel : Float -> Float
-calculateZoomLevel range =
+calculateZoomLevel : Zoom -> Float -> Float
+calculateZoomLevel zoom range =
     if range <= 1000 then
-        0
+        if zoom == In then
+            0
+        else
+            125
     else if range <= 60000 then
         125
     else if range <= 3600000 then
@@ -139,27 +145,40 @@ calculateZoomLevel range =
         31104000000
 
 
-calculateZoom : Zoom -> Float -> Float -> Maybe ( Float, Float )
-calculateZoom zoom min max =
+calculateZoomSpeed : Int -> Float
+calculateZoomSpeed delta =
+    if delta < 10 then
+        toFloat 1
+    else if delta < 50 then
+        toFloat 2
+    else
+        toFloat 3
+
+
+calculateZoom : Zoom -> Float -> Float -> Float -> Maybe ( Float, Float )
+calculateZoom zoom zoomSpeed min max =
     let
         zoomLevel =
-            Debug.log "Zoom" <| calculateZoomLevel (max - min)
+            Debug.log "Zoom" <| calculateZoomLevel zoom (max - min)
+
+        totalZoom =
+            zoomLevel * zoomSpeed
     in
         case zoom of
             In ->
-                Just ( min + zoomLevel, max - zoomLevel )
+                Just ( min + totalZoom, max - totalZoom )
 
             Out ->
-                Just ( min - zoomLevel, max + zoomLevel )
+                Just ( min - totalZoom, max + totalZoom )
 
 
-updateRange : Zoom -> Int -> Int -> Model -> Model
-updateRange zoom x y model =
+updateRange : Zoom -> Float -> Int -> Int -> Model -> Model
+updateRange zoom zoomSpeed x y model =
     let
         newRange =
             case model.range of
                 Just ( min, max ) ->
-                    calculateZoom zoom min max
+                    calculateZoom zoom zoomSpeed min max
 
                 Nothing ->
                     Just <| defaultMinMax model.data
@@ -360,7 +379,7 @@ view model =
             |> toHtml
 
 
-port mouseWheel : (( Bool, Int, Int ) -> msg) -> Sub msg
+port mouseWheel : (( Bool, Int, Int, Int ) -> msg) -> Sub msg
 
 
 subscriptions : Model -> Sub Msg
