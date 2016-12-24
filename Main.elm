@@ -18,8 +18,11 @@ type alias Model =
     , padding : Float
     , axisColour : Color.Color
     , xTickHeight : Float
+    , yTickWidth : Float
     , xTickSpread : Float
+    , yTickSpread : Float
     , xTickValueMargin : Float
+    , xTickValueSpacing : Float
     , data : List ( Float, Float )
     , range : Maybe ( Float, Float )
     }
@@ -90,8 +93,11 @@ initModel =
     , padding = 100
     , axisColour = black
     , xTickHeight = 10
+    , yTickWidth = 10
     , xTickSpread = 50
+    , yTickSpread = 50
     , xTickValueMargin = 20
+    , xTickValueSpacing = 15
     , data = lineData
     , range = Nothing
     }
@@ -230,6 +236,12 @@ makeXTick colour tickHeight xOffset yOffset xPos =
         |> traced (solid colour)
 
 
+makeYTick : Color -> Float -> Float -> Float -> Float -> Form
+makeYTick colour tickWidth xOffset yOffset yPos =
+    path [ ( -xOffset, yPos - yOffset ), ( -tickWidth - xOffset, yPos - yOffset ) ]
+        |> traced (solid colour)
+
+
 defaultMinMax : List ( Float, Float ) -> ( Float, Float )
 defaultMinMax data =
     let
@@ -270,48 +282,89 @@ makeValues min max step remaining =
         min :: (makeValues (min + step) max step (remaining - 1))
 
 
-formatDate : UnitType -> Date.Date -> String
-formatDate unitType date =
-    case unitType of
-        Second ->
-            toString <| Date.second date
-
-        Minute ->
-            toString <| Date.minute date
-
-        Hour ->
-            toString <| Date.hour date
-
-        Day ->
-            (toString <| Date.day date) ++ " " ++ (toString <| Date.month date)
-
-        Month ->
-            (toString <| Date.month date) ++ " " ++ (toString <| Date.year date - 2000)
-
-        Year ->
-            toString <| Date.year date
-
-
-makeXValue : UnitType -> Float -> Float -> Float -> Float -> Float -> Form
-makeXValue unitType xOffset yOffset margin xPos xValue =
+makeXText : Float -> Float -> Float -> Float -> String -> Form
+makeXText xOffset margin xPos yOffset xValue =
     let
         position =
             ( xPos - xOffset, -yOffset - margin )
 
         text =
             xValue
-                |> Date.fromTime
-                >> formatDate unitType
                 |> fromString
                 |> Collage.text
     in
         Collage.move position text
 
 
+dateToTime : Date.Date -> String
+dateToTime date =
+    let
+        hour =
+            Date.hour date |> toString
+
+        minute =
+            Date.minute date |> toString
+
+        second =
+            Date.second date |> toString
+    in
+        hour ++ ":" ++ minute ++ ":" ++ second
+
+
+makeXValue : UnitType -> Float -> Float -> Float -> Float -> Float -> Float -> List Form
+makeXValue unitType xOffset yOffset margin spacing xPos xValue =
+    let
+        makeText =
+            makeXText xOffset margin xPos
+
+        date =
+            Date.fromTime xValue
+    in
+        case unitType of
+            Second ->
+                [ makeText yOffset <| dateToTime date ]
+
+            Minute ->
+                [ makeText yOffset <| dateToTime date ]
+
+            Hour ->
+                [ makeText yOffset <|
+                    (toString <| Date.day date)
+                        ++ " "
+                        ++ (toString <| Date.month date)
+                , makeText (yOffset + spacing) <| dateToTime date
+                ]
+
+            Day ->
+                [ makeText yOffset <|
+                    (toString <| Date.day date)
+                        ++ " "
+                        ++ (toString <| Date.month date)
+                , makeText (yOffset + spacing) <| toString <| Date.year date
+                ]
+
+            Month ->
+                [ makeText yOffset <|
+                    (toString <| Date.month date)
+                        ++ " "
+                        ++ (toString <| Date.year date - 2000)
+                ]
+
+            Year ->
+                [ makeText yOffset <| toString <| Date.year date ]
+
+
 makeXTicks : Float -> Float -> Model -> List Float -> List Form
 makeXTicks xOffset yOffset model ticks =
     List.map
         (makeXTick model.axisColour model.xTickHeight xOffset yOffset)
+        ticks
+
+
+makeYTicks : Float -> Float -> Model -> List Float -> List Form
+makeYTicks xOffset yOffset model ticks =
+    List.map
+        (makeYTick model.axisColour model.yTickWidth xOffset yOffset)
         ticks
 
 
@@ -330,7 +383,17 @@ makeXValues xOffset yOffset model ticks =
         values =
             Debug.log "values" <| makeValues min max (snd step) tickCount
     in
-        List.map2 (makeXValue (fst step) xOffset yOffset model.xTickValueMargin) ticks values
+        List.map2
+            (makeXValue
+                (fst step)
+                xOffset
+                yOffset
+                model.xTickValueMargin
+                model.xTickValueSpacing
+            )
+            ticks
+            values
+            |> List.concat
 
 
 xUnits : Model -> ( List Form, List Form )
@@ -351,6 +414,24 @@ xUnits model =
         )
 
 
+yUnits : Model -> ( List Form, List Form )
+yUnits model =
+    let
+        ticks =
+            [0..((model.height - model.padding * 2) / model.yTickSpread)]
+                |> List.map (\x -> x * model.yTickSpread)
+
+        xOffset =
+            model.width / 2 - model.padding
+
+        yOffset =
+            model.height / 2 - model.padding
+    in
+        ( makeYTicks xOffset yOffset model ticks
+        , []
+        )
+
+
 view : Model -> Html msg
 view model =
     let
@@ -363,10 +444,15 @@ view model =
         ( xTicks, xValues ) =
             xUnits model
 
+        ( yTicks, yValues ) =
+            yUnits model
+
         forms =
             List.concat
                 [ xTicks
+                , yTicks
                 , xValues
+                , yValues
                 , [ xAxis
                   , yAxis
                   ]
